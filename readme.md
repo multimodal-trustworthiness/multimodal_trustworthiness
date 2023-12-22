@@ -33,7 +33,7 @@ To run the analysis, follow these steps:
 2. Navigate to the cloned directory.
 3. Run the main script:
    ```bash
-   python main.py
+   python LSTM (verbal).py
    ```
 
 ## Code Structure
