@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 from collect_data.dataset import get_data
 from sklearn.metrics import accuracy_score, f1_score
 from pathlib import Path
-time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
 
 
 class TradLstm(nn.Module):
@@ -79,158 +78,15 @@ class CTCModule(nn.Module):
         return align_out, last_state
 
 
-def train(batch_size, train_loader, valid_loader, test_loader, lr=0.001, use_cv=False):
-    """
-   train model
-    """
-    language_align_audio = CTCModule(input_size=200, out_len=200).cuda()
-    if torch.cuda.is_available():
-        language_align_audio = language_align_audio.cuda()
-
-   # CTC  loss and optimizer
-    ctc_criterion = nn.CTCLoss()
-    l2a_optimizer = torch.optim.Adam(language_align_audio.parameters(), lr=lr)
-
-    # lr optimizer
-    model = TradLstm(batch_size=batch_size, input_size=274, hide_size=200, bi=True, num_layers=2, use_cv=use_cv).cuda()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    loss_func = torch.nn.MSELoss()
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", patience=4, factor=0.5, verbose=True)
-    epochs = 40
-    best_valid = 100000
-    sample = [f"ctc_ef_lstm_{time_stamp}_la.pt", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())]
-    record_loss = {
-        "loss": copy.deepcopy(sample), "mse": copy.deepcopy(sample), "mae": copy.deepcopy(sample),
-        "corr": copy.deepcopy(sample), "acc": copy.deepcopy(sample), "f1_score": copy.deepcopy(sample)
-    }
-    for epoch in range(1, 1+epochs):
-        start_time = time.time()
-        model.train()
-        language_align_audio.train()
-        for idx_batch, (batch_x, batch_y, batch_meta, batch_cv, batch_info) in enumerate(train_loader):
-            batch_start = time.time()
-            sample_idx, language, audio, vision = batch_x
-            eval_attr = batch_y.squeeze(-1)
-            if torch.cuda.is_available():
-                with torch.cuda.device(0):
-                    language, audio, vision, eval_attr, cv_attr = language.cuda(), audio.cuda(), vision.cuda(), eval_attr.cuda(), batch_cv.cuda()
-            else:
-                cv_attr = batch_cv
-
-            model.zero_grad()
-            language_align_audio.zero_grad()
-
-            #  ctc loss
-            ctc_language_audio = nn.DataParallel(language_align_audio)
-            language, a2l_position = ctc_language_audio(language)
-
-            l_len, a_len = 300, 200
-            bs = a2l_position.shape[0]
-            # Output Labels
-            target = torch.tensor([i + 1 for i in range(a_len)] * bs).int().cpu()
-            # Specifying each output length
-            target_length = torch.tensor([a_len] * bs).int().cpu()
-            # Specifying each input length
-            a_length = torch.tensor([l_len] * bs).int().cpu()
-
-            ctc_loss = ctc_criterion(a2l_position.transpose(0, 1).log_softmax(2), target, a_length, target_length)
-            ctc_loss = ctc_loss.cuda() if torch.cuda.is_available() else ctc_loss
-
-            # features conact
-            combine_input = torch.cat((language, audio), dim=2)
-            combine_input = combine_input.cuda() if torch.cuda.is_available() else combine_input
-            net = nn.DataParallel(model)
-            preds = net(combine_input, cv_attr)
-            model_loss = loss_func(preds, eval_attr)
-            combine_loss = model_loss + ctc_loss
-            combine_loss.backward()
-
-            torch.nn.utils.clip_grad_norm_(language_align_audio.parameters(), 0.8)
-            l2a_optimizer.step()
-
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 0.8)
-            optimizer.step()
-            batch_end = time.time()
-            if idx_batch % 30 == 0:
-                print("Epoch {:2d} | Batch {:2d}/{:2d} | Time {:5.4f} sec | "
-                      "Train Loss {:5.4f}".format(epoch, idx_batch, len(train_loader),
-                                                  batch_end - batch_start, combine_loss))
-        # evaluation and test
-        val_loss, val_res, val_truth, _ = evaluate(model, language_align_audio, valid_loader, criterion=loss_func, ctc_criterion=nn.CTCLoss())
-        test_loss, test_res, test_truth, _ = evaluate(model, language_align_audio, test_loader, criterion=loss_func, ctc_criterion=nn.CTCLoss())
-        scheduler.step(val_loss)
-        record_loss["loss"].append(val_loss)
-        valid_eval = eval_trustworthiness(val_res, val_truth)
-        for key in valid_eval.keys():
-            record_loss[key].append(valid_eval.get(key))
-
-        print("-" * 50)
-        duration = time.time() - start_time
-        print("Epoch {:2d} | Time {:5.4f} sec | Valid Loss {:5.4f} | Test Loss {:5.4f}".format(epoch, duration,
-                                                                                               val_loss, test_loss))
-        print("-" * 50)
-
-        # save model if  model has a better performance
-        if val_loss < best_valid:
-            models_dir = os.path.join(os.getcwd(), "pre_train_model")
-            if not os.path.exists(models_dir):
-                os.makedirs(models_dir)
-            print(f"Save model at pre_train_models/ctc_ef_lstm_la.pt!")
-            save_model(name=f"ctc_ef_lstm_la_{time_stamp}", model=model)
-            best_valid = val_loss
-
-            print(f"Save model at pre_train_models/ctc_model.pt!")
-            save_model(name=f"ctc_ef_lstm_la_{time_stamp}", model=language_align_audio)
-
-    # recording the results of epochs
-    with open(f"{Path.cwd()}\\pre_train_model\\record_val_loss.txt", "a+") as file:
-        for key in record_loss.keys():
-            item_str = key + "\t"
-            for item in record_loss.get(key):
-                item_str = item_str + str(item) + "\t"
-            file.write(item_str[:-1] + "\n")
-        file.close()
-        # test
-    val_loss, val_res, val_truth, _ = evaluate(
-        model,
-        language_align_audio,
-        valid_loader,
-        criterion=loss_func,
-        ctc_criterion=nn.CTCLoss()
-    )
-    test_loss, test_res, test_truth, _ = evaluate(
-        model,
-        language_align_audio,
-        test_loader,
-        criterion=loss_func,
-        ctc_criterion=nn.CTCLoss()
-    )
-    # ctc_model_path = f"ctc_model_{time_stamp}.pt"
-    # language_align_audio = load_model(ctc_model_path)
-    # mode_path = f"ctc_ef_lstm_{time_stamp}.pt"
-    # model = load_model(mode_path)
-    # _, results, truths, _ = evaluate(
-    #     model,
-    #     language_align_audio,
-    #     test_loader,
-    #     criterion=loss_func,
-    #     ctc_criterion=nn.CTCLoss()
-    # )
-    test_eval = eval_trustworthiness(test_res, test_truth)
-    return test_eval, f"ctc_model_{time_stamp}", f"ctc_ef_lstm_{time_stamp}"
 
 def evaluate(model, ctc_model, t_loader, criterion, ctc_criterion=None):
     """
        evaluation model performance
     """
-    try:
-        model.eval()
-    except:
-        print("")
-    try:
-        ctc_model.eval()
-    except:
-        print("")
+
+    model.eval()
+    ctc_model.eval()
+
 
     avg_loss, total_sample = 0.0, 0
     results, truths, meta_info = list(), list(), list()
@@ -268,15 +124,6 @@ def evaluate(model, ctc_model, t_loader, criterion, ctc_criterion=None):
     return avg_loss, results, truths, meta_info
 
 
-
-def save_model(name, model):
-    """
-       save  pretrained model
-    """
-    model_dir = f"{Path.cwd()}\\pre_train_model\\{name}.pt"
-    if os.path.exists(model_dir):
-        os.remove(model_dir)
-    torch.save(model, model_dir)
 
 
 def load_model(name):
@@ -317,20 +164,18 @@ def eval_trustworthiness(results, truths):
         "f1_score": f_score
     }
 if __name__ == "__main__":
-    for seed in range(10):
-        seed = seed
-        if seed is not None:
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed(seed)
-            torch.backends.cudnn.deterministic = True
 
-        batch_size = 32
-        data_dir = r"..\collect_data"
-        train_data_loader = DataLoader(get_data(data_dir, "trust", "train"), batch_size=batch_size,
-                                       shuffle=False, generator=torch.Generator(device="cuda"))
-        valid_data_loader = DataLoader(get_data(data_dir, "trust", "valid"), batch_size=batch_size,
-                                       shuffle=False, generator=torch.Generator(device="cuda"))
-        test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=batch_size,
-                                      shuffle=False, generator=torch.Generator(device="cuda"))
+    seed = 1234
 
-        train(batch_size, train_data_loader, valid_data_loader, test_data_loader)
+    #load data
+    data_dir = r"..\collect_data"
+    test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=32,
+                                  shuffle=False, generator=torch.Generator(device="cuda"))
+
+    # load pretrained model
+    ctc_model = load_model(f"EarlyFusion_lstm_ctc_la")
+    model = load_model(f"EarlyFusion_lstm_la")
+
+    # evaluation
+    _, results, truths, _ = evaluate(model, ctc_model, test_data_loader, criterion=nn.MSELoss(), ctc_criterion=None)
+    eval_trustworthiness(results, truths)
