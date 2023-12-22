@@ -19,8 +19,10 @@ You can install these packages using pip:
 pip install torch pandas statsmodels numpy scikit-learn
 ```
 
+
 ## Dataset
 Due to GitHub's storage limitations, only the test data is displayed in this repository. The complete dataset, including training, validation, and test data, has been uploaded to Google Drive. You can access the full dataset using the following link: [Google Drive Dataset](https://drive.google.com/drive/folders/1EpMjVBAh1d9Zh73QkjpChoufGOqxBgvt).
+
 
 
 
@@ -36,37 +38,40 @@ To run the analysis, follow these steps:
    python CTC_EF_LSTM (verbal_vocal_visual).py
    ```
 
+
 ## Code Structure
 - `11 main models`: The main script that orchestrates the data loading,  pretrained model loading, and evaluation,including the LSTM-based model for early fusion of vocal and visual modalities.
 - `collect_data.py`: Contains functions for data loading and preprocessing.
 - `pre_train_model`: Contains the pretrained models of 11 models.
   
 
+
 ## Model Description
 The codebase includes 11 different models, each designed to handle various modalities and fusion techniques in the context of measuring trustworthiness of microenterprises:
 
-1. **Single Modality LSTM Models (3 Models):**
+1. **No Fusion + Unimodal Data, LSTM Models (3 Models):**
    - `LSTM (verbal).py`: LSTM model for verbal data.
    - `LSTM (visual).py`: LSTM model for visual data.
    - `LSTM (vocal).py`: LSTM model for vocal data.
 
-2. **Dual Modality without Fusion - Late Fusion LSTM Models (3 Models):**
+2. **Partial Fusion + Bimodal Data, Late Fusion LSTM Models (3 Models):**
    - `LF_LSTM (verbal_visual).py`: Late Fusion LSTM for verbal and visual data.
    - `LF_LSTM (verbal_vocal).py`: Late Fusion LSTM for verbal and vocal data.
    - `LF_LSTM (vocal_visual).py`: Late Fusion LSTM for vocal and visual data.
 
-3. **Dual Modality with Fusion - Early Fusion LSTM Models (3 Models):**
+3. **Full Fusion + Bimodal Data, Early Fusion LSTM Models (3 Models):**
    - `CTC_EF_LSTM (verbal_visual).py`: Early Fusion LSTM for verbal and visual data.
    - `CTC_EF_LSTM (verbal_vocal).py`: Early Fusion LSTM for verbal and vocal data.
    - `CTC_EF_LSTM (vocal_visual).py`: Early Fusion LSTM for vocal and visual data.
 
-4. **Tri Modality without Fusion - Late Fusion LSTM Model (1 Model):**
+4. **Partial Fusion + Trimodal Data, Late Fusion LSTM Model (1 Model):**
    - `LF_LSTM (verbal_vocal_visual).py`: Late Fusion LSTM for verbal, vocal, and visual data.
 
-5. **Tri Modality with Fusion - Early Fusion LSTM Model (1 Model):**
+5. **Full Fusion + Trimodal Data, Early Fusion LSTM Model (1 Model):**
    - `CTC_EF_LSTM (verbal_vocal_visual).py`: Early Fusion LSTM for verbal, vocal, and visual data.
 
 Each model is based on pretrained models and demonstrates the prediction results for different data modalities and fusion techniques. The models are specifically tailored for analyzing the trustworthiness of microenterprises using multimodal data.
+
 
 
 ## Evaluation Metrics
