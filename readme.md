@@ -40,9 +40,11 @@ To run the analysis, follow these steps:
 
 
 ## Code Structure
-- `11 main models`: The main script that orchestrates the data loading,  pretrained model loading, and evaluation,including the LSTM-based model for early fusion of vocal and visual modalities.
+- `11 main models`: The main script that orchestrates the data loading,  pretrained model loading, and evaluation.
+  
 - `collect_data.py`: Contains functions for data loading and preprocessing.
-- `pre_train_model`: Contains the pretrained models of 11 models.
+  
+- `pre_train_model`: Contains 11 pretrained models.
   
 
 
