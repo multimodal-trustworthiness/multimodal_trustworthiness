@@ -24,6 +24,22 @@ pip install torch pandas statsmodels numpy scikit-learn
 Due to GitHub's storage limitations, only the test data is displayed in this repository. The complete dataset, including training, validation, and test data, has been uploaded to Google Drive. You can access the full dataset using the following link: [Google Drive Dataset](https://drive.google.com/drive/folders/1EpMjVBAh1d9Zh73QkjpChoufGOqxBgvt).
 
 
+### Features 
+#### Vocal Features
+- **Tool Used**: Covarep.
+- **Features**: 74 vocal features per second.
+- **Data Representation**: 135 seconds x 74 dimensions feature matrix.
+
+#### Visual Features
+- **Tool Used**: OpenFace 2.0.
+- **Features**: 49 facial features per image.
+- **Data Representation**: 135 seconds x 49 dimensions matrix.
+
+#### Verbal Features
+- **Tool Used**: AliNLP.
+- **Features**: 200-dimensional vector sequence.
+- **Model Details**: PyTorch with Adam optimizer.
+
 
 
 ## Usage
