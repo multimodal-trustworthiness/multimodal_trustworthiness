@@ -1,5 +1,5 @@
 
-# Introducing Machine-Learning-Based Data Fusion Methods for Analyzing Multimodal Data: An Application of Measuring Trustworthiness of Microenterprises
+## Introducing Machine-Learning-Based Data Fusion Methods for Analyzing Multimodal Data: An Application of Measuring Trustworthiness of Microenterprises
 
 ## Overview
 This repository contains the code and data used in the research paper "Introducing Machine-Learning-Based Data Fusion Methods for Analyzing Multimodal Data: An Application of Measuring Trustworthiness of Microenterprises". 
@@ -9,9 +9,9 @@ Before running the scripts, ensure you have the following dependencies installed
 - Python 3.x
 - PyTorch
 - Pandas
-- Statsmodels
 - Numpy
-- Torchvision (if needed)
+- Pickle
+- Statsmodels
 - Scikit-learn
 
 You can install these packages using pip:
