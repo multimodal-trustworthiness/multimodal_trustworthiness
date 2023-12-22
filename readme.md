@@ -27,17 +27,17 @@ Due to GitHub's storage limitations, only the test data is displayed in this rep
 ### Multimodal Features 
 #### Vocal Features
 - **Tool Used**: Covarep.
-- **Features**: 74 vocal features per second.
-- **Data Representation**: 135 seconds x 74 dimensions feature matrix.
+- **Features**: 74 dimensions.
+
 
 #### Visual Features
 - **Tool Used**: OpenFace 2.0.
-- **Features**: 49 facial features per image.
-- **Data Representation**: 135 seconds x 49 dimensions matrix.
+- **Features**: 49 dimensions.
+
 
 #### Verbal Features
 - **Tool Used**: AliNLP.
-- **Features**: 200-dimensional vector sequence.
+- **Features**: 200 dimensions.
 
 
 
