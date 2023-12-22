@@ -155,7 +155,7 @@ if __name__ == "__main__":
                                   shuffle=False, generator=torch.Generator(device="cuda"))
 
     # load pretrained model
-    model_name = "ef_lstm_va"
+    model_name = "EarlyFusion_lstm_va"
     model = load_model(model_name)
 
     # evaluation
