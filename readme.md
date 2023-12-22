@@ -38,7 +38,7 @@ Due to GitHub's storage limitations, only the test data is displayed in this rep
 #### Verbal Features
 - **Tool Used**: AliNLP.
 - **Features**: 200-dimensional vector sequence.
-- **Model Details**: PyTorch with Adam optimizer.
+
 
 
 
