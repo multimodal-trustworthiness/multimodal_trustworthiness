@@ -33,7 +33,7 @@ To run the analysis, follow these steps:
 2. Navigate to the cloned directory.
 3. Run the main script:
    ```bash
-   python LSTM (verbal).py
+   python CTC_EF_LSTM (verbal_vocal_visual).py
    ```
 
 ## Code Structure
@@ -51,20 +51,20 @@ The codebase includes 11 different models, each designed to handle various modal
    - `LSTM (vocal).py`: LSTM model for vocal data.
 
 2. **Dual Modality without Fusion - Late Fusion LSTM Models (3 Models):**
-   - `LF LSTM (verbal visual).py`: Late Fusion LSTM for verbal and visual data.
-   - `LF LSTM (verbal vocal).py`: Late Fusion LSTM for verbal and vocal data.
-   - `LF LSTM (vocal visual).py`: Late Fusion LSTM for vocal and visual data.
+   - `LF_LSTM (verbal_visual).py`: Late Fusion LSTM for verbal and visual data.
+   - `LF_LSTM (verbal_vocal).py`: Late Fusion LSTM for verbal and vocal data.
+   - `LF_LSTM (vocal_visual).py`: Late Fusion LSTM for vocal and visual data.
 
 3. **Dual Modality with Fusion - Early Fusion LSTM Models (3 Models):**
-   - `CTC EF LSTM (verbal visual).py`: Early Fusion LSTM for verbal and visual data.
-   - `CTC EF LSTM (verbal vocal).py`: Early Fusion LSTM for verbal and vocal data.
-   - `CTC EF LSTM (vocal visual).py`: Early Fusion LSTM for vocal and visual data.
+   - `CTC_EF_LSTM (verbal_visual).py`: Early Fusion LSTM for verbal and visual data.
+   - `CTC_EF_LSTM (verbal_vocal).py`: Early Fusion LSTM for verbal and vocal data.
+   - `CTC_EF_LSTM (vocal_visual).py`: Early Fusion LSTM for vocal and visual data.
 
 4. **Tri Modality without Fusion - Late Fusion LSTM Model (1 Model):**
-   - `LF LSTM (verbal vocal visual).py`: Late Fusion LSTM for verbal, vocal, and visual data.
+   - `LF_LSTM (verbal_vocal_visual).py`: Late Fusion LSTM for verbal, vocal, and visual data.
 
 5. **Tri Modality with Fusion - Early Fusion LSTM Model (1 Model):**
-   - `CTC EF LSTM (verbal vocal visual).py`: Early Fusion LSTM for verbal, vocal, and visual data.
+   - `CTC_EF_LSTM (verbal_vocal_visual).py`: Early Fusion LSTM for verbal, vocal, and visual data.
 
 Each model is based on pretrained models and demonstrates the prediction results for different data modalities and fusion techniques. The models are specifically tailored for analyzing the trustworthiness of microenterprises using multimodal data.
 
