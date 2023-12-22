@@ -13,8 +13,6 @@ from collect_data.dataset import get_data
 from sklearn.metrics import accuracy_score, f1_score
 from pathlib import Path
 from datetime import date
-time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-
 
 class TradLstm(nn.Module):
 
@@ -222,13 +220,8 @@ if __name__ == "__main__":
     seed = 1234
 
     # load data
-    batch_size = 32
     data_dir = r"..\collect_data"
-    train_data_loader = DataLoader(get_data(data_dir, "trust", "train"), batch_size=batch_size,
-                                   shuffle=False, generator=torch.Generator(device="cuda"))
-    valid_data_loader = DataLoader(get_data(data_dir, "trust", "valid"), batch_size=batch_size,
-                                   shuffle=False, generator=torch.Generator(device="cuda"))
-    test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=batch_size,
+    test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=32,
                                   shuffle=False, generator=torch.Generator(device="cuda"))
 
 
