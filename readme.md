@@ -30,7 +30,7 @@ Due to GitHub's storage limitations, only the test data is displayed in this rep
 To run the analysis, follow these steps:
 1. Clone the repository:
    ```bash
-   git clone [repository URL]
+   git clone [multimodal_trustworthiness](https://github.com/multimodal-trustworthiness/multimodal_trustworthiness)
    ```
 2. Navigate to the cloned directory.
 3. Run the main script:
