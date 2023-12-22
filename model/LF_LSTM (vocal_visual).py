@@ -12,8 +12,6 @@ from torch.utils.data import DataLoader
 from collect_data.dataset import get_data
 from sklearn.metrics import accuracy_score, f1_score
 from pathlib import Path
-time_stamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-
 
 class TradLstm(nn.Module):
 
@@ -103,111 +101,6 @@ class FusionModel(nn.Module):
         return res
 
 
-def model_train(model, modal, train_loader, valid_loader, test_loader, lr=0.001):
-    """
-   train model
-    """
-    best_valid = 1000000
-    loss_func = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", patience=4, factor=0.5, verbose=True)
-    epochs = 40
-    sample = [f"lf_lstm_{modal}_{time_stamp}.pt", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())]
-    record_loss = {
-        "loss": copy.deepcopy(sample), "mse": copy.deepcopy(sample), "mae": copy.deepcopy(sample),
-        "corr": copy.deepcopy(sample), "acc": copy.deepcopy(sample), "f1_score": copy.deepcopy(sample)
-    }
-    for epoch in range(1, epochs+1):
-        start_time = time.time()
-        model.train()
-        proc_loss, proc_size = 0, 0
-        for idx_batch, (batch_x, batch_y, batch_meta, batch_cv, batch_info) in enumerate(train_loader):
-            batch_start = time.time()
-            sample_idx, language, audio, vision = batch_x
-            if "LateFusion" not in modal:
-                if modal == "language":
-                    id_variable = language
-                elif modal == "audio":
-                    id_variable = audio
-                else:
-                    id_variable = vision
-                eval_attr = batch_y.squeeze(-1)
-                optimizer.zero_grad()
-                if torch.cuda.is_available():
-                    with torch.cuda.device(0):
-                        id_variable, eval_attr, cv_attr = id_variable.cuda(), eval_attr.cuda(), batch_cv.cuda()
-                else:
-                    cv_attr = batch_cv
-
-                net = nn.DataParallel(model) if batch_y.shape[0] > 3 else model
-                preds, _ = net(id_variable, cv_attr)
-                mse_loss = loss_func(preds, eval_attr)
-                mse_loss.backward()
-                optimizer.step()
-                batch_end = time.time()
-                if idx_batch % 30 == 0:
-                    print("Epoch {:2d} | Batch {:2d}/{:2d} | Time {:5.4f} sec | Train Loss {:5.4f}"
-                          "".format(epoch, idx_batch, len(train_loader), batch_end-batch_start, mse_loss))
-            else:
-                eval_attr = batch_y.squeeze(-1)
-                optimizer.zero_grad()
-                if torch.cuda.is_available():
-                    with torch.cuda.device(0):
-                        verbal, vocal, visual, eval_attr, cv_attr = language.cuda(), audio.cuda(), vision.cuda(), eval_attr.cuda(), batch_cv.cuda()
-                else:
-                    cv_attr = batch_cv
-                net = nn.DataParallel(model) if batch_y.shape[0] > 3 else model
-                combine_predict = net(verbal, vocal, visual, cv_attr)
-                mse_loss = loss_func(combine_predict, eval_attr)
-                mse_loss.backward()
-                optimizer.step()
-                batch_end = time.time()
-                proc_loss += mse_loss.item() * batch_size
-                proc_size += batch_size
-                if idx_batch % 30 == 0:
-                    print("Epoch {:2d} | Batch {:2d}/{:2d} | Time {:5.4f} sec | Train Loss {:5.4f}"
-                          "".format(epoch, idx_batch, len(train_loader), batch_end-batch_start, proc_loss/proc_size))
-
-        # evaluation and test
-        val_loss, val_res, val_truth = evaluate(model, valid_loader, modal, criterion=loss_func, loader_name="valid")
-        test_loss, _, _ = evaluate(model, test_loader, modal, criterion=loss_func, loader_name="test")
-        scheduler.step(val_loss)
-        record_loss["loss"].append(val_loss)
-
-        valid_eval = eval_trustworthiness(val_res, val_truth, loader_name="valid_loader")
-        for key in valid_eval.keys():
-            record_loss[key].append(valid_eval.get(key))
-
-        print("-"*50)
-        duration = time.time() - start_time
-        print("Epoch {:2d} | Time {:5.4f} sec | Valid Loss {:5.4f} | Test Loss {:5.4f}".format(epoch, duration,
-                                                                                               val_loss, test_loss))
-        print("-" * 50)
-
-        # save model if  model has a better performance
-        if val_loss < best_valid:
-            models_dir = os.path.join(os.getcwd(), "pre_train_model")
-            if not os.path.exists(models_dir):
-                os.makedirs(models_dir)
-            print(f"Save model at pre_train_models/lf_lstm_{modal}_{time_stamp}.pt!")
-            save_model(name=f"lf_lstm_{modal}_{time_stamp}", model=model)
-            best_valid = val_loss
-
-    # recording the results of epochs
-    with open(f"{Path.cwd()}\\pre_train_model\\record_val_loss.txt", "a+") as file:
-        for key in record_loss.keys():
-            item_str = key+"\t"
-            for item in record_loss.get(key):
-                item_str = item_str + str(item) + "\t"
-            file.write(item_str[:-1] + "\n")
-        file.close()
-
-    # test
-    model = load_model(f"lf_lstm_{modal}_{time_stamp}")
-    _, results, truths = evaluate(model, test_loader, modal, criterion=loss_func, loader_name="test_loader")
-    eval_trustworthiness(results, truths, loader_name="test")
-
-
 def evaluate(model, t_loader, modal, criterion, loader_name):
     """
    evaluation model performance
@@ -257,17 +150,6 @@ def evaluate(model, t_loader, modal, criterion, loader_name):
     truths = torch.cat(truths)
     return avg_loss, results, truths
 
-
-def save_model(name, model):
-    """
-       save  pretrained model
-    """
-    model_dir = f"{Path.cwd()}\\pre_train_model\\{name}.pt"
-    if os.path.exists(model_dir):
-        os.remove(model_dir)
-    torch.save(model, model_dir)
-
-
 def load_model(name):
     """
     load   pretrained model
@@ -314,13 +196,8 @@ if __name__ == "__main__":
     # verval, vocal and visual modality
     seed = 1234
    # load data
-    batch_size = 32
     data_dir = r"..\collect_data"
-    train_data_loader = DataLoader(get_data(data_dir, "trust", "train"), batch_size=batch_size,
-                                   shuffle=False, generator=torch.Generator(device="cuda"))
-    valid_data_loader = DataLoader(get_data(data_dir, "trust", "valid"), batch_size=batch_size,
-                                   shuffle=False, generator=torch.Generator(device="cuda"))
-    test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=batch_size,
+    test_data_loader = DataLoader(get_data(data_dir, "trust", "test"), batch_size=32,
                                   shuffle=False, generator=torch.Generator(device="cuda"))
 
     # load pretrained model
